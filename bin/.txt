@@ -1,0 +1,2 @@
+mpc-be64.exe ( https://ja.osdn.net/projects/sfnet_mpcbe/ )
+youtube-dl.exe ( https://youtube-dl.org/ ) を直下に配置する
