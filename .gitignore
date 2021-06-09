@@ -1,2 +1,4 @@
-video/*
-!.gitkeep
+node_modules
+public/movie
+youtube-dl.exe
+.env
