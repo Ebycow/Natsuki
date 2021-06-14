@@ -9,5 +9,4 @@ contextBridge.exposeInMainWorld("api", {
   onPauseRequest: (listner) => ipcRenderer.on("onPauseRequest", (event) => listner(event)),
   onTimebackRequest: (listner) => ipcRenderer.on("onTimebackRequest", (event, time) => listner(event, time)),
   onTimegoRequest: (listner) => ipcRenderer.on("onTimegoRequest", (event, time) => listner(event, time)),
-
 })

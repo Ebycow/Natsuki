@@ -4,9 +4,13 @@ const {app, BrowserWindow} = require('electron')
 const express = require('express')
 const cors = require('cors')
 const path = require('path')
+const Datastore = require('nedb')
 const crypto = require('crypto');
 const exec = require('child_process').exec;
 const Discord = require('discord.js');
+const ytfps = require('ytfps');
+
+const db = new Datastore({ filename: './playlist', autoload: true });
 
 const client = new Discord.Client();
 
@@ -34,7 +38,7 @@ function createWindow () {
   mainWindow.removeMenu();
 
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools()
+  mainWindow.webContents.openDevTools()
 }
 
 // This method will be called when Electron has finished
@@ -61,7 +65,7 @@ app.on('window-all-closed', function () {
 // code. You can also put them in separate files and require them here.
 
 client.on('message', async (msg) => {
-  console.log(msg)
+
   if (msg.mentions.has(client.user)) {
     if(msg.content.split(" ")[1] === "skip"){
       mainWindow.webContents.send("onSkipRequest")
@@ -75,23 +79,69 @@ client.on('message', async (msg) => {
     } else if(msg.content.split(" ")[1] === "back") {
       mainWindow.webContents.send("onTimebackRequest", msg.content.split(" ")[2])
 
-    }  else if(msg.content.split(" ")[1] === "go") {
+    } else if(msg.content.split(" ")[1] === "go") {
       mainWindow.webContents.send("onTimegoRequest", msg.content.split(" ")[2])
 
     } else {
-      msg.reply('downloading movie');
-      console.log(msg.content);
-      const maybeUrl = msg.content.split(" ")[1];
-      console.log(msg.content.split(" "))
+      if (msg.content.split(" ")[1].indexOf("youtube.com/playlist") != -1) {
+        const url = msg.content.split(" ")[1];
+        msg.reply('downloading playlist movies');
+        try {
+          const playlist = await ytfps(url);
+          for (const video of playlist.videos) {
+            try {
+              const filename = await getVideo(video.url)
+              mainWindow.webContents.send("onAddMovie", filename)
+            } catch (error) {
+              msg.reply(error.toString());
+            }
 
-      let providerType = undefined;
-      if(maybeUrl.indexOf("youtube") >= 0) {
-          providerType = "youtube";
-      } else if(maybeUrl.indexOf("nicovideo") >= 0) {
-          providerType = "nicovideo";
+          }
+
+        } catch (error) {
+          msg.reply(error.toString());
+        }
+        
+      } else {
+        msg.reply('downloading movie');
+        console.log(msg.content);
+        const maybeUrl = msg.content.split(" ")[1];
+        console.log(msg.content.split(" "))
+  
+        let providerType = undefined;
+        if(maybeUrl.indexOf("youtube") >= 0) {
+            providerType = "youtube";
+        } else if(maybeUrl.indexOf("nicovideo") >= 0) {
+            providerType = "nicovideo";
+        }
+  
+        try {
+          const filename = await getVideo(maybeUrl)
+          mainWindow.webContents.send("onAddMovie", filename)
+  
+        } catch (error) {
+            console.log(error);
+            msg.reply(error.toString());
+  
+        }
+
       }
 
-      let filename = undefined;
+    }
+    
+  }
+
+});
+
+client.on('ready', () => {
+  console.log(`Logged in as ${client.user.tag}!`);
+});
+
+client.login(process.env.TOKEN);
+
+
+async function getVideo(maybeUrl) {
+  let filename = undefined;
       
       try {
           const videoid = crypto.createHash('md5').update(maybeUrl).digest('hex');
@@ -108,28 +158,16 @@ client.on('message', async (msg) => {
                   console.log(stdout);
 
                   filename = videoid + ".mp4";
-                  mainWindow.webContents.send("onAddMovie", filename)
+                  
                   resolve();
 
               });
 
           })
-
-      } catch (error) {
-          console.log(error);
-          msg.reply('error');
-
+      } catch(err) {
+        throw new Error("動画保存できなかったエラー" + err.toString())
       }
 
+      return filename
       
-    }
-    
-  }
-
-});
-
-client.on('ready', () => {
-  console.log(`Logged in as ${client.user.tag}!`);
-});
-
-client.login(process.env.TOKEN);
+}
