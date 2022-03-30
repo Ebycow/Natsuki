@@ -26,6 +26,6 @@
     "express": "^4.17.1",
     "nedb": "^1.8.0",
     "youtube-playlist": "^1.0.4",
-    "ytfps": "^1.0.5"
+    "ytfps": "^1.0.6"
   }
 }
